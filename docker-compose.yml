@@ -1,0 +1,86 @@
+version: "3"
+
+# More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    environment:
+      TZ: 'Europe/Athens'
+      WEBPASSWORD: 'poothole'
+      # ServerIP: '192.168.50.10'
+    # Volumes store your data between container upgrades
+    network_mode: host
+    volumes:
+      - './etc-pihole:/etc/pihole'
+      - './etc-dnsmasq.d:/etc/dnsmasq.d'    
+    cap_add:
+      - NET_ADMIN # Recommended but not required (DHCP needs NET_ADMIN)      
+    restart: unless-stopped
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: Europe/Athens
+      #UMASK_SET: "022"
+      #JELLYFIN_PublishedServerUrl: 192.168.50.10
+    ports:
+      - 8096:8096
+      - 8920:8920 #optional
+      - 7359:7359/udp #optional
+      - 1900:1900/udp #optional
+    restart: unless-stopped
+    volumes:
+      - ./jellyfin/config:/config
+      - ./jellyfin/cache:/cache
+      - /mnt/media:/media
+    devices:
+      #- /dev/dri/renderD128:/dev/dri/renderD128
+      #- /dev/dri/card0:/dev/dri/card0
+      #- /dev/vchiq:/dev/vchiq
+      - /dev/video10:/dev/video10
+      - /dev/video11:/dev/video11
+      - /dev/video12:/dev/video12
+      # jelly / pootpoot
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Athens
+      - WEBUI_PORT=8080
+    volumes:
+      - ./.qbittorrent/config:/config
+      - /mnt/media:/downloads
+    ports:
+      - 8080:8080
+      - 6881:6881
+      - 6881:6881/udp
+    restart: unless-stopped
+  portainer:
+    image: portainer/portainer-ce
+    container_name: portainer
+    ports:
+      - 8000:8000
+      - 9443:9443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    restart: unless-stopped
+    # admin / BfyZ4rRjJgDz6uq
+  filebrowser:
+    image: filebrowser/filebrowser
+    container_name: filebrowser
+    volumes:
+        - /mnt/media:/srv
+        - ./filebrowser:/config/filebrowser
+    ports:
+        - 8090:80
+    restart: unless-stopped
+volumes:
+  portainer_data:
+    name: portainer_data
+
